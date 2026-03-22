@@ -48,6 +48,16 @@ export const RSS_FEEDS: FeedConfig[] = [
     origin: 'flynous',
     optional: true, // WordPress guess — graceful fail
   },
+  {
+    name: 'The Flight Deal',
+    url: 'https://www.theflightdeal.com/feed/',
+    origin: 'theflightdeal',
+  },
+  {
+    name: 'Secret Flying USA',
+    url: 'https://www.secretflying.com/posts/category/departure/depart-usa/feed/',
+    origin: 'secretflying-usa',
+  },
 ]
 
 // Fallback forum IDs do próby jeśli f=6 nie działa
