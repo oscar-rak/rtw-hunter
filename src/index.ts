@@ -32,32 +32,24 @@ async function fetchFeed(feed: FeedConfig): Promise<RawItem[]> {
 }
 
 async function fetchFly4freeForum(): Promise<RawItem[]> {
-  // Try f=6 first (primary), then fallbacks
-  const primaryFeed: FeedConfig = {
-    name: 'Fly4free Forum',
-    url: 'https://fly4free.pl/forum/feed.php?f=6',
-    origin: 'fly4free-forum',
+  // Try all IDs in parallel, return first non-empty result
+  const allIds = [6, ...FLY4FREE_FORUM_FALLBACK_IDS]
+  const feeds = allIds.map(id => ({
+    name: `Fly4free Forum f=${id}`,
+    url: `https://fly4free.pl/forum/feed.php?f=${id}`,
+    origin: 'fly4free-forum' as const,
     optional: true,
-  }
+  }))
 
-  const items = await fetchFeed(primaryFeed)
-  if (items.length > 0) return items
-
-  console.log('[Fly4free Forum] f=6 returned empty, trying fallback IDs...')
-  for (const id of FLY4FREE_FORUM_FALLBACK_IDS) {
-    const fallback: FeedConfig = {
-      name: `Fly4free Forum f=${id}`,
-      url: `https://fly4free.pl/forum/feed.php?f=${id}`,
-      origin: 'fly4free-forum',
-      optional: true,
-    }
-    const result = await fetchFeed(fallback)
-    if (result.length > 0) {
-      console.log(`[Fly4free Forum] found working ID: f=${id}`)
-      return result
+  const results = await Promise.all(feeds.map(f => fetchFeed(f)))
+  for (let i = 0; i < results.length; i++) {
+    if (results[i].length > 0) {
+      console.log(`[Fly4free Forum] working ID: f=${allIds[i]}`)
+      return results[i]
     }
   }
 
+  console.log('[Fly4free Forum] no working feed found')
   return []
 }
 
