@@ -58,6 +58,23 @@ export const RSS_FEEDS: FeedConfig[] = [
     url: 'https://www.secretflying.com/posts/category/departure/depart-usa/feed/',
     origin: 'secretflying-usa',
   },
+  {
+    name: 'HolidayPirates',
+    url: 'https://www.holidaypirates.com/feed',
+    origin: 'holidaypirates',
+  },
+  {
+    name: 'View from the Wing',
+    url: 'https://viewfromthewing.com/feed/',
+    origin: 'viewfromthewing',
+    optional: true,
+  },
+  {
+    name: 'One Mile at a Time',
+    url: 'https://onemileatatime.com/feed/',
+    origin: 'onemileatatime',
+    optional: true,
+  },
 ]
 
 // Fallback forum IDs do próby jeśli f=6 nie działa
