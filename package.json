@@ -1,0 +1,19 @@
+{
+  "name": "rtw-hunter",
+  "version": "1.0.0",
+  "description": "RTW Łowca Okazji — backend scanner dla promocji lotniczych",
+  "private": true,
+  "scripts": {
+    "scan": "tsx src/index.ts",
+    "scan:local": "node --env-file=.env --import tsx src/index.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
