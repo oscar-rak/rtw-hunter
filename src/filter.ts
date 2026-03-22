@@ -1,4 +1,4 @@
-export type KanbanColumn = 'gotowce_rtw' | 'pl_azja' | 'plan_b' | 'azja_usa_oceania' | 'usa_pl' | 'misc'
+export type KanbanColumn = 'gotowce_rtw' | 'pl_azja' | 'plan_b' | 'azja_pl' | 'azja_usa_oceania' | 'usa_pl' | 'misc'
 
 export interface RawItem {
   title: string
@@ -18,7 +18,10 @@ export interface FilteredDeal {
 }
 
 // ─── Forum noise ─────────────────────────────────────────────────────────────
-const FORUM_NOISE_PREFIXES = ['Re:', 'Szukam taniego lotu', 'Szukam lotu']
+const FORUM_NOISE_PREFIXES = [
+  'Re:', 'Szukam taniego lotu', 'Szukam lotu',
+  'WTT:', 'Sprzedam:', 'SOLD:', 'Kupię bilet', 'Kupię lot',
+]
 
 function isForumNoise(title: string): boolean {
   const trimmed = title.trim()
@@ -31,16 +34,30 @@ const RTW_KEYWORDS = [
   'RTW', 'round the world', 'around the world', 'dookoła świata',
   'lot dookoła', 'world tour', 'RTW ticket', 'round-the-world',
   'world trip', 'świat w cenie',
+  // Building blocks — składaka / open jaw
+  'open jaw', 'open-jaw', 'openjaw',
+  'multi-city', 'multicity',
+  'składana', 'składaka',
+  'one way onward', // onward ticket RTW
 ]
 
 // Destynacje — osobne segmenty też interesują (Azja, USA, Oceania)
 const DESTINATION_KEYWORDS = [
-  // Azja
-  'Azja', 'Tokio', 'Tokyo', 'Singapur', 'Singapore', 'Bangkok',
-  'Seul', 'Seoul', 'Bali', 'Hongkong', 'Hong Kong', 'Japonia', 'Japan',
-  'Tajlandia', 'Thailand', 'Wietnam', 'Vietnam', 'Filipiny', 'Philippines',
-  'Phuket', 'Kuala Lumpur', 'KL', 'Malediwy', 'Maldives',
-  'Indonezja', 'Indonesia', 'Osaka', 'Kioto', 'Kyoto',
+  // Azja — PL i EN nazwy
+  'Azja', 'Asia',
+  'Tokio', 'Tokyo', 'Osaka', 'Kioto', 'Kyoto',
+  'Singapur', 'Singapore',
+  'Bangkok', 'Phuket',
+  'Seul', 'Seoul', 'Korea',
+  'Bali', 'Denpasar',
+  'Hongkong', 'Hong Kong',
+  'Japonia', 'Japan',
+  'Tajlandia', 'Thailand',
+  'Wietnam', 'Vietnam',
+  'Filipiny', 'Philippines',
+  'Kuala Lumpur', 'KL',
+  'Malediwy', 'Maldives',
+  'Indonezja', 'Indonesia',
   // Oceania
   'Oceania', 'Australia', 'Nowa Zelandia', 'New Zealand', 'Sydney', 'Melbourne',
   // USA / Hawaii
@@ -48,8 +65,11 @@ const DESTINATION_KEYWORDS = [
   'Honolulu', 'Nowy Jork', 'New York',
   // Americas
   'Meksyk', 'Mexico', 'Cancun',
+  // RTW hub airports — linie z dobrymi segmentami
+  'Istanbul', 'Doha', 'HKG', 'Dubai',
   // Airlines z RTW segmentami
   'Singapore Airlines', 'Turkish Airlines', 'Finnair', 'Qatar Airways',
+  'Emirates', 'Etihad', 'Cathay Pacific', 'Japan Airlines',
   // Error fares — zawsze warte uwagi
   'error fare', 'błąd cenowy', 'mistake fare',
 ]
@@ -74,6 +94,9 @@ const DEPARTURE_PATTERNS: Array<{ tag: string; keywords: string[] }> = [
   { tag: 'MAD', keywords: ['Madrid', 'Madryt', 'MAD', 'Barcelona', 'BCN'] },
   { tag: 'LHR', keywords: ['London', 'Londyn', 'LHR', 'Gatwick', 'LGW', 'Stansted', 'STN'] },
   { tag: 'LCA', keywords: ['Larnaka', 'Larnaca', 'Cypr', 'Cyprus'] },
+  { tag: 'IST', keywords: ['Istanbul', 'IST', 'Stambuł'] },
+  { tag: 'DXB', keywords: ['Dubai', 'DXB'] },
+  { tag: 'DOH', keywords: ['Doha', 'DOH'] },
 ]
 
 const PL_ORIGIN_SOURCES = ['fly4free', 'fly4free-forum', 'travelfree']
@@ -87,11 +110,14 @@ function detectDepartureTag(title: string, origin: string): string | null {
 }
 
 // ─── Kanban assignment ───────────────────────────────────────────────────────
+
+// Plan B — konkretne destynacje, maj/czerwiec, oba kierunki + składaka
 const PLAN_B_DESTINATIONS = [
   'Seul', 'Seoul', 'Korea', 'ICN',
   'Japonia', 'Japan', 'Tokio', 'Tokyo', 'Osaka', 'Kioto', 'Kyoto', 'NRT', 'HND', 'KIX',
   'Tajlandia', 'Thailand', 'Bangkok', 'BKK', 'Phuket', 'HKT',
   'Bali', 'Denpasar', 'DPS',
+  'Azja', 'Azji', 'Asia', // ogólne — dla "składaka przez Azję"
 ]
 
 const PLAN_B_DATE_INDICATORS = [
@@ -100,10 +126,26 @@ const PLAN_B_DATE_INDICATORS = [
   '06.', '/06', '06/', '-06-', '.06.',
 ]
 
+// Azja → PL — powroty z Azji, niezależnie od terminu
+const AZJA_PL_KEYWORDS = [
+  // PL dopełniacz — "z Bangkoku", "z Tokio" itd.
+  'z Bangkoku', 'z Tokio', 'z Seulu', 'z Bali', 'z Singapuru', 'z Osaki',
+  'z Japonii', 'z Tajlandii', 'z Korei', 'z Azji', 'z Indonezji', 'z Phuket',
+  // EN directional
+  'from Bangkok', 'from Tokyo', 'from Seoul', 'from Bali', 'from Singapore',
+  'from Osaka', 'from Japan', 'from Asia', 'from Thailand',
+  // Zwroty powrotne
+  'powrót z Azji', 'powrót z Japonii', 'powrót z Tajlandii',
+  'return from Asia', 'return from Bangkok', 'return from Tokyo',
+  // IATA arrow notation (jak w tytułach sekretflying)
+  'BKK-WAW', 'NRT-WAW', 'HND-WAW', 'ICN-WAW', 'SIN-WAW',
+]
+
 const PL_AZJA_KEYWORDS = [
-  'Azja', 'Tokio', 'Tokyo', 'Singapur', 'Singapore', 'Bangkok',
+  'Azja', 'Asia', 'Tokio', 'Tokyo', 'Singapur', 'Singapore', 'Bangkok',
   'Seul', 'Seoul', 'Bali', 'Hongkong', 'Hong Kong',
   'Japonia', 'Japan', 'Tajlandia', 'Thailand', 'Wietnam', 'Vietnam',
+  'Osaka', 'Kioto', 'Kyoto', 'Phuket', 'Kuala Lumpur',
 ]
 
 const AZJA_USA_OCEANIA_KEYWORDS = [
@@ -124,9 +166,9 @@ function isPlanBDeal(title: string): boolean {
 }
 
 function assignKanban(title: string): KanbanColumn {
-  // RTW gotowce — absolutny priorytet
   if (matchesAny(title, RTW_KEYWORDS)) return 'gotowce_rtw'
-  if (isPlanBDeal(title)) return 'plan_b'
+  if (isPlanBDeal(title)) return 'plan_b'          // maj/czerwiec, oba kierunki
+  if (matchesAny(title, AZJA_PL_KEYWORDS)) return 'azja_pl'  // powrót z Azji (rok cały)
   if (matchesAny(title, PL_AZJA_KEYWORDS)) return 'pl_azja'
   if (matchesAny(title, USA_PL_DEST) && matchesAny(title, USA_PL_RETURN)) return 'usa_pl'
   if (matchesAny(title, AZJA_USA_OCEANIA_KEYWORDS)) return 'azja_usa_oceania'

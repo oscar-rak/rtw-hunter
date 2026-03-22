@@ -4,14 +4,15 @@ const COLUMN_LABELS: Record<string, string> = {
   gotowce_rtw: 'GOTOWCE RTW',
   plan_b: '🎯 PLAN B — MAJ/CZE',
   pl_azja: 'PL → AZJA',
+  azja_pl: 'AZJA → PL',
   azja_usa_oceania: 'AZJA → USA/OCEANIA',
   usa_pl: 'USA → PL',
   misc: 'MISC',
 }
 
 function extractPrice(title: string): string | null {
-  const m = title.match(/(\d[\d\s]{1,6})\s*(zł|PLN|EUR|USD|€)/i)
-  return m ? `${m[1].trim()} ${m[2]}` : null
+  const m = title.match(/(\d[\d,.]{0,6}\d)\s*(zł|PLN|EUR|USD|€)/i)
+  return m ? `${m[1]} ${m[2]}` : null
 }
 
 function formatTimeAgo(publishedAt: string | null): string {

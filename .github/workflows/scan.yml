@@ -2,7 +2,7 @@ name: RTW Feed Scanner
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # co 30 minut
+    - cron: '*/15 6-20 * * *'   # co 15 min, 7:00–21:00 CET (8:00–22:00 CEST latem)
   workflow_dispatch:
 
 jobs:
