@@ -1,11 +1,17 @@
 import type { FilteredDeal } from './filter.js'
 
 const COLUMN_LABELS: Record<string, string> = {
+  gotowce_rtw: 'GOTOWCE RTW',
+  plan_b: '🎯 PLAN B — MAJ/CZE',
   pl_azja: 'PL → AZJA',
   azja_usa_oceania: 'AZJA → USA/OCEANIA',
   usa_pl: 'USA → PL',
-  gotowce_rtw: 'GOTOWCE RTW',
   misc: 'MISC',
+}
+
+function extractPrice(title: string): string | null {
+  const m = title.match(/(\d[\d\s]{1,6})\s*(zł|PLN|EUR|USD|€)/i)
+  return m ? `${m[1].trim()} ${m[2]}` : null
 }
 
 function formatTimeAgo(publishedAt: string | null): string {
@@ -22,15 +28,23 @@ function buildMessage(deal: FilteredDeal): string {
   const label = COLUMN_LABELS[deal.kanban_column] ?? deal.kanban_column.toUpperCase()
   const timeAgo = formatTimeAgo(deal.published_at)
   const sourceName = deal.origin.replace(/-/g, ' ').toUpperCase()
+  const price = extractPrice(deal.title)
+  const depTag = deal.departure_tag
+
+  const meta = [
+    price ? `💰 ${price}` : null,
+    depTag ? `✈️ ${depTag}` : null,
+  ].filter(Boolean).join('  |  ')
 
   return [
     `🚨 NOWY DEAL — ${label}`,
     deal.title,
     '',
+    meta || null,
     `📡 ${sourceName}`,
     `⏱ ${timeAgo}`,
     `🔗 ${deal.source_url}`,
-  ].join('\n')
+  ].filter(line => line !== null).join('\n')
 }
 
 async function sendMessage(text: string): Promise<void> {

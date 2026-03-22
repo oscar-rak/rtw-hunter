@@ -1,4 +1,4 @@
-export type KanbanColumn = 'gotowce_rtw' | 'pl_azja' | 'azja_usa_oceania' | 'usa_pl' | 'misc'
+export type KanbanColumn = 'gotowce_rtw' | 'pl_azja' | 'plan_b' | 'azja_usa_oceania' | 'usa_pl' | 'misc'
 
 export interface RawItem {
   title: string
@@ -39,11 +39,17 @@ const DESTINATION_KEYWORDS = [
   'Azja', 'Tokio', 'Tokyo', 'Singapur', 'Singapore', 'Bangkok',
   'Seul', 'Seoul', 'Bali', 'Hongkong', 'Hong Kong', 'Japonia', 'Japan',
   'Tajlandia', 'Thailand', 'Wietnam', 'Vietnam', 'Filipiny', 'Philippines',
+  'Phuket', 'Kuala Lumpur', 'KL', 'Malediwy', 'Maldives',
+  'Indonezja', 'Indonesia', 'Osaka', 'Kioto', 'Kyoto',
   // Oceania
   'Oceania', 'Australia', 'Nowa Zelandia', 'New Zealand', 'Sydney', 'Melbourne',
   // USA / Hawaii
   'USA', 'Hawaje', 'Hawaii', 'Los Angeles', 'San Francisco',
   'Honolulu', 'Nowy Jork', 'New York',
+  // Americas
+  'Meksyk', 'Mexico', 'Cancun',
+  // Airlines z RTW segmentami
+  'Singapore Airlines', 'Turkish Airlines', 'Finnair', 'Qatar Airways',
   // Error fares — zawsze warte uwagi
   'error fare', 'błąd cenowy', 'mistake fare',
 ]
@@ -67,6 +73,7 @@ const DEPARTURE_PATTERNS: Array<{ tag: string; keywords: string[] }> = [
   { tag: 'FCO', keywords: ['Rome', 'Rzym', 'FCO', 'Milan', 'Mediolan', 'MXP'] },
   { tag: 'MAD', keywords: ['Madrid', 'Madryt', 'MAD', 'Barcelona', 'BCN'] },
   { tag: 'LHR', keywords: ['London', 'Londyn', 'LHR', 'Gatwick', 'LGW', 'Stansted', 'STN'] },
+  { tag: 'LCA', keywords: ['Larnaka', 'Larnaca', 'Cypr', 'Cyprus'] },
 ]
 
 const PL_ORIGIN_SOURCES = ['fly4free', 'fly4free-forum', 'travelfree']
@@ -80,6 +87,19 @@ function detectDepartureTag(title: string, origin: string): string | null {
 }
 
 // ─── Kanban assignment ───────────────────────────────────────────────────────
+const PLAN_B_DESTINATIONS = [
+  'Seul', 'Seoul', 'Korea', 'ICN',
+  'Japonia', 'Japan', 'Tokio', 'Tokyo', 'Osaka', 'Kioto', 'Kyoto', 'NRT', 'HND', 'KIX',
+  'Tajlandia', 'Thailand', 'Bangkok', 'BKK', 'Phuket', 'HKT',
+  'Bali', 'Denpasar', 'DPS',
+]
+
+const PLAN_B_DATE_INDICATORS = [
+  'maj', 'majow', 'May', 'czerwiec', 'czerwcow', 'June',
+  '05.', '/05', '05/', '-05-', '.05.',
+  '06.', '/06', '06/', '-06-', '.06.',
+]
+
 const PL_AZJA_KEYWORDS = [
   'Azja', 'Tokio', 'Tokyo', 'Singapur', 'Singapore', 'Bangkok',
   'Seul', 'Seoul', 'Bali', 'Hongkong', 'Hong Kong',
@@ -99,10 +119,14 @@ function matchesAny(text: string, keywords: string[]): boolean {
   return keywords.some(kw => lower.includes(kw.toLowerCase()))
 }
 
+function isPlanBDeal(title: string): boolean {
+  return matchesAny(title, PLAN_B_DESTINATIONS) && matchesAny(title, PLAN_B_DATE_INDICATORS)
+}
+
 function assignKanban(title: string): KanbanColumn {
   // RTW gotowce — absolutny priorytet
   if (matchesAny(title, RTW_KEYWORDS)) return 'gotowce_rtw'
-
+  if (isPlanBDeal(title)) return 'plan_b'
   if (matchesAny(title, PL_AZJA_KEYWORDS)) return 'pl_azja'
   if (matchesAny(title, USA_PL_DEST) && matchesAny(title, USA_PL_RETURN)) return 'usa_pl'
   if (matchesAny(title, AZJA_USA_OCEANIA_KEYWORDS)) return 'azja_usa_oceania'
