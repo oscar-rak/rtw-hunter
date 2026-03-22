@@ -38,11 +38,6 @@ export const RSS_FEEDS: FeedConfig[] = [
     origin: 'travelfree',
   },
   {
-    name: 'Urlaubspiraten',
-    url: 'https://www.urlaubspiraten.de/feed',
-    origin: 'urlaubspiraten',
-  },
-  {
     name: 'Flynous',
     url: 'https://flynous.com/feed/',
     origin: 'flynous',
@@ -57,23 +52,6 @@ export const RSS_FEEDS: FeedConfig[] = [
     name: 'Secret Flying USA',
     url: 'https://www.secretflying.com/posts/category/departure/depart-usa/feed/',
     origin: 'secretflying-usa',
-  },
-  {
-    name: 'HolidayPirates',
-    url: 'https://www.holidaypirates.com/feed',
-    origin: 'holidaypirates',
-  },
-  {
-    name: 'View from the Wing',
-    url: 'https://viewfromthewing.com/feed/',
-    origin: 'viewfromthewing',
-    optional: true,
-  },
-  {
-    name: 'One Mile at a Time',
-    url: 'https://onemileatatime.com/feed/',
-    origin: 'onemileatatime',
-    optional: true,
   },
 ]
 

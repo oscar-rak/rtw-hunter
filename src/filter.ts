@@ -55,7 +55,7 @@ const DESTINATION_KEYWORDS = [
   'Tajlandia', 'Thailand',
   'Wietnam', 'Vietnam',
   'Filipiny', 'Philippines',
-  'Kuala Lumpur', 'KL',
+  'Kuala Lumpur',
   'Malediwy', 'Maldives',
   'Indonezja', 'Indonesia',
   // Oceania
@@ -66,7 +66,7 @@ const DESTINATION_KEYWORDS = [
   // Americas
   'Meksyk', 'Mexico', 'Cancun',
   // RTW hub airports — linie z dobrymi segmentami
-  'Istanbul', 'Doha', 'HKG', 'Dubai',
+  'Istanbul', 'Doha', 'Dubai',
   // Airlines z RTW segmentami
   'Singapore Airlines', 'Turkish Airlines', 'Finnair', 'Qatar Airways',
   'Emirates', 'Etihad', 'Cathay Pacific', 'Japan Airlines',
@@ -97,6 +97,12 @@ const DEPARTURE_PATTERNS: Array<{ tag: string; keywords: string[] }> = [
   { tag: 'IST', keywords: ['Istanbul', 'IST', 'Stambuł'] },
   { tag: 'DXB', keywords: ['Dubai', 'DXB'] },
   { tag: 'DOH', keywords: ['Doha', 'DOH'] },
+]
+
+// ─── Content blocklist ───────────────────────────────────────────────────────
+// Tytuły zawierające te frazy są zawsze odrzucane (false positives z ogólnych keywordów)
+const CONTENT_BLOCKLIST = [
+  'North Korea', 'North Korean',
 ]
 
 const PL_ORIGIN_SOURCES = ['fly4free', 'fly4free-forum', 'travelfree']
@@ -156,9 +162,19 @@ const AZJA_USA_OCEANIA_KEYWORDS = [
 const USA_PL_RETURN = ['powrót', 'return', 'z USA', 'from US', 'z Nowego Jorku', 'from New York']
 const USA_PL_DEST   = ['USA', 'Nowy Jork', 'New York', 'Los Angeles', 'San Francisco']
 
+function matchesKeyword(text: string, keyword: string): boolean {
+  const kw = keyword.toLowerCase()
+  // Krótkie słowa (≤5 znaków) wymagają word-boundary, żeby uniknąć false positives:
+  // "Bali" nie powinno matchować "globalist", "KL" nie powinno matchować "weekly"
+  if (kw.length <= 5) {
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(text)
+  }
+  return text.toLowerCase().includes(kw)
+}
+
 function matchesAny(text: string, keywords: string[]): boolean {
-  const lower = text.toLowerCase()
-  return keywords.some(kw => lower.includes(kw.toLowerCase()))
+  return keywords.some(kw => matchesKeyword(text, kw))
 }
 
 function isPlanBDeal(title: string): boolean {
@@ -178,6 +194,7 @@ function assignKanban(title: string): KanbanColumn {
 // ─── Main export ─────────────────────────────────────────────────────────────
 export function filterItem(item: RawItem): FilteredDeal | null {
   if (isForumNoise(item.title)) return null
+  if (CONTENT_BLOCKLIST.some(b => item.title.toLowerCase().includes(b.toLowerCase()))) return null
   if (!matchesAny(item.title, ALL_MUST_KEYWORDS)) return null
 
   const kanban = assignKanban(item.title)
