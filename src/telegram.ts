@@ -4,7 +4,7 @@ const COLUMN_LABELS: Record<string, string> = {
   pl_azja: 'PL → AZJA',
   azja_usa_oceania: 'AZJA → USA/OCEANIA',
   usa_pl: 'USA → PL',
-  gotowce: 'GOTOWCE RTW',
+  gotowce_rtw: 'GOTOWCE RTW',
   misc: 'MISC',
 }
 

@@ -13,8 +13,8 @@ const supabase = createClient(
 function normalizeTitle(title: string): string {
   return title
     .toLowerCase()
-    .replace(/\d+/g, '')           // usuń liczby (ceny)
-    .replace(/[€$£zł]/g, '')      // usuń symbole walut
+    .replace(/\d+[\s]*(zł|pln|eur|usd|€|\$|£)/gi, '') // usuń wzorce cenowe
+    .replace(/[€$£]/g, '')        // usuń pozostałe symbole walut
     .replace(/\s+/g, ' ')
     .trim()
 }
