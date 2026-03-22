@@ -2,7 +2,7 @@ import Parser from 'rss-parser'
 import { RSS_FEEDS, FLY4FREE_FORUM_FALLBACK_IDS, type FeedConfig } from './feeds.js'
 import { filterItem, type RawItem } from './filter.js'
 import { upsertDeals } from './db.js'
-import { sendTelegramAlert } from './telegram.js'
+import { sendTelegramAlert, sendHeartbeat } from './telegram.js'
 
 const parser = new Parser({
   timeout: 10_000,
@@ -82,8 +82,14 @@ async function main() {
 
   console.log(`Filtered to ${deals.length} matching deals`)
 
+  // Heartbeat co 4 runy (~2h) — żebyś wiedział że system żyje
+  const runNumber = parseInt(process.env.RUN_NUMBER ?? '0', 10)
   if (deals.length === 0) {
-    console.log('No deals matched — done')
+    console.log('No deals matched')
+    if (runNumber % 4 === 0) {
+      await sendHeartbeat(allItems.length)
+    }
+    console.log('Done')
     return
   }
 

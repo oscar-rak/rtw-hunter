@@ -33,31 +33,26 @@ function buildMessage(deal: FilteredDeal): string {
   ].join('\n')
 }
 
-export async function sendTelegramAlert(deal: FilteredDeal): Promise<void> {
+async function sendMessage(text: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN
   const chatId = process.env.TELEGRAM_CHAT_ID
+  if (!token || !chatId) return
 
-  if (!token || !chatId) {
-    console.warn('Telegram credentials not set, skipping alert')
-    return
-  }
-
-  const text = buildMessage(deal)
-  const url = `https://api.telegram.org/bot${token}/sendMessage`
-
-  const response = await fetch(url, {
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: 'HTML',
-      disable_web_page_preview: false,
-    }),
+    body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
   })
-
   if (!response.ok) {
-    const body = await response.text()
-    console.error(`Telegram error ${response.status}:`, body)
+    console.error(`Telegram error ${response.status}:`, await response.text())
   }
+}
+
+export async function sendHeartbeat(itemsScanned: number): Promise<void> {
+  const now = new Date().toLocaleTimeString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' })
+  await sendMessage(`🟢 RTW Hunter działa — ${now}\nPrzeskanowano ${itemsScanned} ofert, brak nowych dealów.`)
+}
+
+export async function sendTelegramAlert(deal: FilteredDeal): Promise<void> {
+  await sendMessage(buildMessage(deal))
 }

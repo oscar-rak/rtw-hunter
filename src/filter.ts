@@ -1,4 +1,4 @@
-export type KanbanColumn = 'pl_azja' | 'azja_usa_oceania' | 'usa_pl' | 'gotowce' | 'segment' | 'misc'
+export type KanbanColumn = 'gotowce_rtw' | 'pl_azja' | 'azja_usa_oceania' | 'usa_pl' | 'misc'
 
 export interface RawItem {
   title: string
@@ -17,85 +17,73 @@ export interface FilteredDeal {
   departure_tag: string | null
 }
 
-// ─── Forum noise — odrzucaj te posty ────────────────────────────────────────
-const FORUM_NOISE_PREFIXES = [
-  'Re:',
-  'Szukam taniego lotu',
-  'Szukam lotu',
-]
+// ─── Forum noise ─────────────────────────────────────────────────────────────
+const FORUM_NOISE_PREFIXES = ['Re:', 'Szukam taniego lotu', 'Szukam lotu']
 
 function isForumNoise(title: string): boolean {
   const trimmed = title.trim()
-  return FORUM_NOISE_PREFIXES.some(prefix =>
-    trimmed.startsWith(prefix)
-  )
+  return FORUM_NOISE_PREFIXES.some(p => trimmed.startsWith(p))
 }
 
-// ─── Step 1 — Hard filter keywords ──────────────────────────────────────────
-const MUST_KEYWORDS = [
-  // RTW / error fares
-  'RTW', 'dookoła świata', 'round the world', 'error fare', 'błąd cenowy',
+// ─── Step 1 — Hard filter ────────────────────────────────────────────────────
+// Gotowe RTW — najwyższy priorytet
+const RTW_KEYWORDS = [
+  'RTW', 'round the world', 'around the world', 'dookoła świata',
+  'lot dookoła', 'world tour', 'RTW ticket', 'round-the-world',
+  'world trip', 'świat w cenie',
+]
+
+// Destynacje — osobne segmenty też interesują (Azja, USA, Oceania)
+const DESTINATION_KEYWORDS = [
   // Azja
   'Azja', 'Tokio', 'Tokyo', 'Singapur', 'Singapore', 'Bangkok',
-  'Seul', 'Seoul', 'Bali', 'Hongkong', 'Hong Kong',
+  'Seul', 'Seoul', 'Bali', 'Hongkong', 'Hong Kong', 'Japonia', 'Japan',
+  'Tajlandia', 'Thailand', 'Wietnam', 'Vietnam', 'Filipiny', 'Philippines',
   // Oceania
   'Oceania', 'Australia', 'Nowa Zelandia', 'New Zealand', 'Sydney', 'Melbourne',
-  // USA
+  // USA / Hawaii
   'USA', 'Hawaje', 'Hawaii', 'Los Angeles', 'San Francisco',
   'Honolulu', 'Nowy Jork', 'New York',
-  // One-way / open-jaw (segmenty)
-  'one way', 'one-way', 'w jedną stronę', 'jednostronny', 'open jaw', 'multi-city',
-  // Stopover airlines
-  'Singapore Airlines', 'Finnair', 'Turkish Airlines', 'Qatar Airways',
-  'Icelandair', 'Cathay Pacific',
-  // Hub airports (przesiadki)
-  'via Singapore', 'via Istanbul', 'via Doha', 'via Helsinki',
-  'via Hong Kong', 'via Tokyo',
+  // Error fares — zawsze warte uwagi
+  'error fare', 'błąd cenowy', 'mistake fare',
 ]
 
-// ─── Departure airports detection ───────────────────────────────────────────
+const ALL_MUST_KEYWORDS = [...RTW_KEYWORDS, ...DESTINATION_KEYWORDS]
+
+// ─── Departure tag ───────────────────────────────────────────────────────────
 const DEPARTURE_PATTERNS: Array<{ tag: string; keywords: string[] }> = [
-  { tag: 'WAW', keywords: ['Warszawa', 'Warsaw', 'WAW', 'Chopin', 'Modlin', 'WMI'] },
-  { tag: 'KRK', keywords: ['Kraków', 'Krakow', 'Cracow', 'KRK'] },
+  { tag: 'WAW', keywords: ['Warszawa', 'Warsaw', 'WAW', 'Chopin', 'Modlin'] },
+  { tag: 'KRK', keywords: ['Kraków', 'Krakow', 'KRK'] },
   { tag: 'WRO', keywords: ['Wrocław', 'Wroclaw', 'WRO'] },
-  { tag: 'GDN', keywords: ['Gdańsk', 'Gdansk', 'Trójmiasto', 'GDN'] },
-  { tag: 'POZ', keywords: ['Poznań', 'Poznan', 'POZ'] },
-  { tag: 'KTW', keywords: ['Katowice', 'Pyrzowice', 'KTW'] },
+  { tag: 'GDN', keywords: ['Gdańsk', 'Gdansk', 'GDN'] },
+  { tag: 'KTW', keywords: ['Katowice', 'KTW'] },
   { tag: 'BER', keywords: ['Berlin', 'BER', 'Brandenburg'] },
-  { tag: 'PRG', keywords: ['Praga', 'Prague', 'Praha', 'PRG'] },
-  { tag: 'VIE', keywords: ['Wiedeń', 'Vienna', 'Wien', 'VIE'] },
-  { tag: 'BUD', keywords: ['Budapeszt', 'Budapest', 'BUD'] },
+  { tag: 'PRG', keywords: ['Prague', 'Praha', 'Praga', 'PRG'] },
+  { tag: 'VIE', keywords: ['Vienna', 'Wien', 'Wiedeń', 'VIE'] },
+  { tag: 'BUD', keywords: ['Budapest', 'Budapeszt', 'BUD'] },
   { tag: 'FRA', keywords: ['Frankfurt', 'FRA'] },
   { tag: 'AMS', keywords: ['Amsterdam', 'AMS', 'Schiphol'] },
+  { tag: 'CDG', keywords: ['Paris', 'Paryż', 'CDG', 'Orly'] },
+  { tag: 'FCO', keywords: ['Rome', 'Rzym', 'FCO', 'Milan', 'Mediolan', 'MXP'] },
+  { tag: 'MAD', keywords: ['Madrid', 'Madryt', 'MAD', 'Barcelona', 'BCN'] },
+  { tag: 'LHR', keywords: ['London', 'Londyn', 'LHR', 'Gatwick', 'LGW', 'Stansted', 'STN'] },
 ]
 
-// Źródła gdzie wylot jest domyślnie z PL — nie musimy matchować explicite
 const PL_ORIGIN_SOURCES = ['fly4free', 'fly4free-forum', 'travelfree']
 
 function detectDepartureTag(title: string, origin: string): string | null {
-  const text = title + ' ' + origin
   for (const { tag, keywords } of DEPARTURE_PATTERNS) {
-    if (keywords.some(kw => text.includes(kw))) return tag
+    if (keywords.some(kw => title.includes(kw))) return tag
   }
-  // Fly4free/travelfree = domyślnie Polska
   if (PL_ORIGIN_SOURCES.includes(origin)) return 'PL'
   return null
 }
 
 // ─── Kanban assignment ───────────────────────────────────────────────────────
-const GOTOWCE_KEYWORDS = ['RTW', 'dookoła świata', 'round the world']
-
-const SEGMENT_KEYWORDS = [
-  'one way', 'one-way', 'w jedną stronę', 'jednostronny', 'open jaw', 'multi-city',
-  'Singapore Airlines', 'Finnair', 'Turkish Airlines', 'Qatar Airways',
-  'Icelandair', 'Cathay Pacific',
-  'via Singapore', 'via Istanbul', 'via Doha', 'via Helsinki',
-  'via Hong Kong', 'via Tokyo',
-]
-
 const PL_AZJA_KEYWORDS = [
-  'Azja', 'Tokio', 'Tokyo', 'Singapur', 'Singapore',
-  'Bangkok', 'Seul', 'Seoul', 'Bali', 'Hongkong', 'Hong Kong',
+  'Azja', 'Tokio', 'Tokyo', 'Singapur', 'Singapore', 'Bangkok',
+  'Seul', 'Seoul', 'Bali', 'Hongkong', 'Hong Kong',
+  'Japonia', 'Japan', 'Tajlandia', 'Thailand', 'Wietnam', 'Vietnam',
 ]
 
 const AZJA_USA_OCEANIA_KEYWORDS = [
@@ -103,8 +91,8 @@ const AZJA_USA_OCEANIA_KEYWORDS = [
   'USA', 'Hawaje', 'Hawaii', 'Honolulu',
 ]
 
-const USA_PL_RETURN_KEYWORDS = ['powrót', 'return', 'z USA', 'from US', 'z Nowego Jorku', 'from New York']
-const USA_PL_DEST_KEYWORDS = ['USA', 'Nowy Jork', 'New York', 'Los Angeles', 'San Francisco']
+const USA_PL_RETURN = ['powrót', 'return', 'z USA', 'from US', 'z Nowego Jorku', 'from New York']
+const USA_PL_DEST   = ['USA', 'Nowy Jork', 'New York', 'Los Angeles', 'San Francisco']
 
 function matchesAny(text: string, keywords: string[]): boolean {
   const lower = text.toLowerCase()
@@ -112,29 +100,29 @@ function matchesAny(text: string, keywords: string[]): boolean {
 }
 
 function assignKanban(title: string): KanbanColumn {
-  if (matchesAny(title, GOTOWCE_KEYWORDS)) return 'gotowce'
-  if (matchesAny(title, SEGMENT_KEYWORDS)) return 'segment'
+  // RTW gotowce — absolutny priorytet
+  if (matchesAny(title, RTW_KEYWORDS)) return 'gotowce_rtw'
+
   if (matchesAny(title, PL_AZJA_KEYWORDS)) return 'pl_azja'
-  if (matchesAny(title, USA_PL_DEST_KEYWORDS) && matchesAny(title, USA_PL_RETURN_KEYWORDS)) return 'usa_pl'
+  if (matchesAny(title, USA_PL_DEST) && matchesAny(title, USA_PL_RETURN)) return 'usa_pl'
   if (matchesAny(title, AZJA_USA_OCEANIA_KEYWORDS)) return 'azja_usa_oceania'
   return 'misc'
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 export function filterItem(item: RawItem): FilteredDeal | null {
-  // Odrzuć forum noise
   if (isForumNoise(item.title)) return null
+  if (!matchesAny(item.title, ALL_MUST_KEYWORDS)) return null
 
-  // Hard filter — musi pasować przynajmniej 1 keyword
-  if (!matchesAny(item.title, MUST_KEYWORDS)) return null
+  const kanban = assignKanban(item.title)
 
   return {
     title: item.title,
     source_url: item.link,
     origin: item.origin,
     published_at: item.pubDate ?? null,
-    is_rtw_segment: matchesAny(item.title, GOTOWCE_KEYWORDS),
-    kanban_column: assignKanban(item.title),
+    is_rtw_segment: matchesAny(item.title, RTW_KEYWORDS),
+    kanban_column: kanban,
     departure_tag: detectDepartureTag(item.title, item.origin),
   }
 }
