@@ -82,20 +82,16 @@ async function main() {
 
   console.log(`Filtered to ${deals.length} matching deals`)
 
-  // Heartbeat co 4 runy (~2h) — żebyś wiedział że system żyje
   const runNumber = parseInt(process.env.RUN_NUMBER ?? '0', 10)
-  if (deals.length === 0) {
-    console.log('No deals matched')
-    if (runNumber % 4 === 0) {
-      await sendHeartbeat(allItems.length)
-    }
-    console.log('Done')
-    return
-  }
 
   // Save to Supabase (upsert, returns only new rows)
   const newDeals = await upsertDeals(deals)
   console.log(`${newDeals.length} new deals saved to Supabase`)
+
+  // Heartbeat co 4 runy (~2h) gdy brak nowych dealów
+  if (newDeals.length === 0 && runNumber % 4 === 0) {
+    await sendHeartbeat(allItems.length)
+  }
 
   // Send Telegram alerts for new deals only
   for (const deal of newDeals) {
